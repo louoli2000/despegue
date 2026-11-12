@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Estación Espacial Cometa</title>
+<meta name="description" content="Registro de tripulantes: descubre tu tripulación y tu primera misión.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap">
+<style>
+/* Kiosko horizontal "Estación Espacial Cometa": HUD azul holográfico sobre espacio profundo.
+   Todo se mide en vh/vmin para escalar a cualquier pantalla horizontal. */
+:root{
+  --bg:#01030d; --panel:rgba(3,10,34,.78); --panel2:rgba(12,32,92,.85);
+  --line:#4f8dff; --glow:#2f6bff; --hi:#a9c8ff; --text:#eaf2ff; --muted:#93acd9;
+  --bad:#ff7a8a; --ok:#7fe7ff;
+  --display:"Exo 2", ui-sans-serif, system-ui, sans-serif;
+  --body:"Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  --u:min(1vh, .5625vw); /* 1 unidad = 1% del alto de un lienzo 16:9 */
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg); color:var(--text); font-family:var(--body);
+  overflow:hidden; -webkit-tap-highlight-color:transparent; user-select:none;
+}
+input{user-select:text}
+
+/* ---------- Espacio ---------- */
+.space{position:fixed;inset:0;overflow:hidden;
+  background:
+    radial-gradient(ellipse 60% 50% at 78% 30%, rgba(40,80,220,.28), transparent 70%),
+    radial-gradient(ellipse 50% 60% at 15% 80%, rgba(30,60,200,.22), transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% 50%, #04103a 0%, var(--bg) 75%)}
+#stars{position:absolute;inset:0;width:100%;height:100%}
+.planet{position:absolute;right:-16vw;bottom:-72vh;width:58vw;height:58vw;border-radius:50%;
+  background:
+    radial-gradient(ellipse 30% 12% at 40% 22%, rgba(120,170,255,.18), transparent 70%),
+    radial-gradient(ellipse 22% 9% at 60% 34%, rgba(120,170,255,.12), transparent 70%),
+    radial-gradient(circle at 32% 20%, #2a5fd6 0%, #0b2470 28%, #030b2c 60%);
+  box-shadow:0 0 5vh .6vh rgba(70,130,255,.6), inset .8vh 1vh 2.4vh rgba(170,210,255,.5), inset -6vh -6vh 10vh rgba(0,0,10,.8)}
+.astro{position:absolute;left:0;bottom:0;height:86vh;width:auto;mix-blend-mode:screen;opacity:.95;
+  -webkit-mask-image:linear-gradient(90deg,#000 55%,transparent 100%),linear-gradient(0deg,transparent 0,#000 18%);
+  -webkit-mask-composite:source-in; mask-image:linear-gradient(90deg,#000 55%,transparent 100%);
+  pointer-events:none}
+
+/* ---------- Marco HUD ---------- */
+.frame{position:fixed;inset:calc(var(--u)*3);pointer-events:none;
+  --c:calc(var(--u)*4);
+  clip-path:polygon(var(--c) 0,calc(100% - var(--c)) 0,100% var(--c),100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,var(--c) 100%,0 calc(100% - var(--c)),0 var(--c));
+  background:linear-gradient(var(--line),var(--line));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude;
+  padding:2px; opacity:.55; filter:drop-shadow(0 0 6px var(--glow))}
+.logo{position:fixed;left:calc(var(--u)*6);top:calc(var(--u)*5);height:calc(var(--u)*10);mix-blend-mode:screen;z-index:2;
+  -webkit-mask-image:radial-gradient(ellipse 60% 70% at 50% 50%,#000 60%,transparent 100%);mask-image:radial-gradient(ellipse 60% 70% at 50% 50%,#000 60%,transparent 100%)}
+
+/* ---------- Pantallas ---------- */
+.stage{position:fixed;inset:0;display:grid;place-items:center;z-index:3;
+  padding:calc(var(--u)*6) calc(var(--u)*8) calc(var(--u)*6) calc(var(--u)*44)}
+.screen{width:min(100%, calc(var(--u)*120));display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*3.2);
+  animation:in .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes in{from{opacity:0;transform:translateY(calc(var(--u)*3)) scale(.985);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+.screen.out{animation:out .28s ease both}
+@keyframes out{to{opacity:0;transform:translateY(calc(var(--u)*-2));filter:blur(4px)}}
+
+h1,h2{font-family:var(--display);margin:0;text-align:center;letter-spacing:.02em;
+  text-shadow:0 0 calc(var(--u)*1.2) rgba(80,140,255,.9), 0 0 calc(var(--u)*3) rgba(47,107,255,.6)}
+h1{font-size:calc(var(--u)*6.4);font-weight:800;text-transform:uppercase;color:#d9e7ff}
+h2{font-size:calc(var(--u)*5.6);font-weight:700;line-height:1.12;text-wrap:balance}
+.kicker{font-family:var(--display);font-weight:600;font-size:calc(var(--u)*2.2);letter-spacing:.24em;text-transform:uppercase;color:var(--hi);
+  display:flex;align-items:center;gap:calc(var(--u)*1.6)}
+.kicker::before,.kicker::after{content:"";width:calc(var(--u)*8);height:2px;background:linear-gradient(90deg,transparent,var(--line));box-shadow:0 0 8px var(--glow)}
+.kicker::after{transform:scaleX(-1)}
+
+/* Caja HUD con esquinas cortadas y borde luminoso */
+.hud{--c:calc(var(--u)*2.2);position:relative;display:block;
+  clip-path:polygon(var(--c) 0,calc(100% - var(--c)) 0,100% var(--c),100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,var(--c) 100%,0 calc(100% - var(--c)),0 var(--c));
+  background:var(--line);padding:2px}
+.hud > .in{display:block;clip-path:inherit;background:var(--panel);height:100%}
+.glow{filter:drop-shadow(0 0 calc(var(--u)*.8) rgba(70,130,255,.9)) drop-shadow(0 0 calc(var(--u)*2.4) rgba(47,107,255,.45))}
+
+/* Campos */
+form{width:100%;display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*2.6)}
+.field{width:100%}
+.field .in{display:flex;align-items:center}
+.field .ic{width:calc(var(--u)*11);display:grid;place-items:center;align-self:stretch;border-right:1px solid rgba(120,170,255,.25)}
+.field svg{width:calc(var(--u)*4.4);height:calc(var(--u)*4.4);stroke:#cfe0ff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 0 4px rgba(90,150,255,.9))}
+.field input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--text);
+  font:600 calc(var(--u)*3.4) var(--body);padding:calc(var(--u)*2.6) calc(var(--u)*3)}
+.field input::placeholder{color:#b9cdf3;opacity:.85}
+.field:focus-within{--line:#9cc2ff}
+.field:focus-within .in{background:var(--panel2)}
+.field.bad{--line:var(--bad)}
+.msg{min-height:calc(var(--u)*3.4);font-size:calc(var(--u)*2.5);color:var(--muted);text-align:center}
+.msg.err{color:var(--bad);font-weight:700}
+
+/* Botón principal */
+.btn{appearance:none;border:0;background:none;padding:0;cursor:pointer;color:var(--text)}
+.btn .hud{--c:calc(var(--u)*2.6)}
+.btn .in{display:block;padding:calc(var(--u)*2.2) calc(var(--u)*9);font:800 calc(var(--u)*3.6) var(--display);letter-spacing:.06em;text-transform:uppercase;
+  text-shadow:0 0 calc(var(--u)*1) rgba(120,170,255,.9)}
+.btn:hover .in,.btn:focus-visible .in{background:var(--panel2)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn:focus-visible{outline:none}
+.btn:focus-visible .hud{--line:#d5e5ff}
+.back{position:fixed;left:calc(var(--u)*44);bottom:calc(var(--u)*6);z-index:4;font:700 calc(var(--u)*2.4) var(--display);letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);background:none;border:0;cursor:pointer;padding:calc(var(--u)*1.5)}
+.back:hover{color:var(--text)}
+
+/* Progreso */
+.steps{display:flex;gap:calc(var(--u)*1.2)}
+.steps i{width:calc(var(--u)*7);height:calc(var(--u)*.8);border-radius:9px;background:rgba(120,170,255,.25)}
+.steps i.on{background:var(--hi);box-shadow:0 0 10px var(--glow)}
+
+/* Opciones */
+.opts{width:100%;display:flex;flex-direction:column;gap:calc(var(--u)*1.9)}
+.opt{width:100%;text-align:left}
+.opt .hud{--c:calc(var(--u)*1.8)}
+.opt .in{text-transform:none;letter-spacing:0;text-shadow:none;display:flex;align-items:center;gap:calc(var(--u)*3);padding:calc(var(--u)*2.1) calc(var(--u)*3)}
+.opt .letter{flex:none;width:calc(var(--u)*6);height:calc(var(--u)*6);display:grid;place-items:center;
+  font:800 calc(var(--u)*3) var(--display);border:2px solid var(--hi);color:#fff;
+  clip-path:polygon(22% 0,100% 0,100% 78%,78% 100%,0 100%,0 22%);background:rgba(60,110,255,.25)}
+.opt .t{font:600 calc(var(--u)*3.1) var(--body);line-height:1.25;color:var(--text)}
+.opt:hover .in{background:var(--panel2)}
+.opt.sel{--line:#cfe0ff}
+.opt.sel .in{background:linear-gradient(90deg,rgba(70,130,255,.55),rgba(20,50,140,.75))}
+.opt.sel .letter{background:#cfe0ff;color:#06123a}
+.opt:active{transform:scale(.985)}
+
+/* Resultado */
+.hello{font-size:calc(var(--u)*8)}
+.welcome{font:600 calc(var(--u)*3.6) var(--body);color:#dce8ff;text-align:center;margin:calc(var(--u)*-1) 0 0}
+.crewrow{display:flex;align-items:center;gap:calc(var(--u)*2.4)}
+.crewrow::before,.crewrow::after{content:"";width:calc(var(--u)*14);height:2px;background:linear-gradient(90deg,transparent,var(--hi));box-shadow:0 0 8px var(--glow)}
+.crewrow::after{transform:scaleX(-1)}
+.crew .in{padding:calc(var(--u)*1.6) calc(var(--u)*5);font:800 calc(var(--u)*5.6) var(--display);letter-spacing:.06em;text-transform:uppercase;
+  background:linear-gradient(180deg,rgba(80,140,255,.5),rgba(10,30,90,.85));text-shadow:0 0 calc(var(--u)*1.4) rgba(160,200,255,1)}
+.crewd{font-size:calc(var(--u)*2.5);color:var(--muted);text-align:center;margin:calc(var(--u)*-1.6) 0 0;max-width:calc(var(--u)*90)}
+.mission{width:min(100%, calc(var(--u)*96))}
+.mission .hud{--c:calc(var(--u)*5)}
+.mission .in{padding:calc(var(--u)*3) calc(var(--u)*7) calc(var(--u)*3.4);display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*1.4);text-align:center}
+.mission .lab{font:600 calc(var(--u)*3) var(--display);color:#dce8ff;letter-spacing:.04em;padding-bottom:calc(var(--u)*1);
+  border-bottom:2px solid rgba(150,190,255,.6);box-shadow:0 6px 8px -8px var(--glow)}
+.mission .lab b{font-weight:800}
+.mission .name{font:800 calc(var(--u)*4.4) var(--display);text-shadow:0 0 calc(var(--u)*1.2) rgba(110,160,255,.9)}
+.mission .obj{font:600 calc(var(--u)*2.9) var(--body);color:#d4e2ff;max-width:calc(var(--u)*80)}
+.again{font-size:calc(var(--u)*2.3);color:var(--muted)}
+
+/* Pantalla vertical o angosta: se apila y se oculta el astronauta */
+@media (max-aspect-ratio: 5/4){
+  :root{--u:min(.85vh, 1vw)}
+  body{overflow:auto}
+  .astro{opacity:.25;height:60vh}
+  .stage{position:relative;min-height:100%;padding:calc(var(--u)*20) 16px calc(var(--u)*14)}
+  .back{left:16px}
+}
+@media (prefers-reduced-motion: reduce){ .screen,.screen.out{animation:none} }
+</style>
+</head>
+<body>
+<div class="space" aria-hidden="true">
+  <canvas id="stars"></canvas>
+  <div class="planet"></div>
+  <img class="astro" src="assets/astronauta.png" alt="">
+</div>
+<div class="frame" aria-hidden="true"></div>
+<img class="logo" src="assets/logo.png" alt="Estación Espacial Cometa">
+
+<main class="stage" id="stage"></main>
+<button class="back" id="back" hidden>← Volver</button>
+
+<script>
+/* ===================== Configuración ===================== */
+/* Misma URL del Apps Script que usa el quiz completo: las respuestas van a la misma hoja. */
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbyRUZJSuhWGWA5kikMiMvDAibAiYuNwGOPNrMVA1N-9dxR579QSZ7KVYcNH1eBNNzuF0g/exec";
+const RESET_SECONDS = 45; /* en el resultado, vuelve solo al registro para el siguiente tripulante */
+
+/* ===================== Contenido ===================== */
+const Q_ARCH = {
+  key:"arch", title:"¿Cuál de estas frases suena más a ti?",
+  opts:[
+    {v:"apasionado",  t:"Quiero estudiar algo que me encante, aunque no sea lo más típico."},
+    {v:"practico",    t:"Quiero una carrera con buenas oportunidades de trabajo y un camino claro."},
+    {v:"changemaker", t:"Quiero estudiar algo que me permita cambiar cosas en mi comunidad o en el país."},
+    {v:"descubriendo",t:"Todavía estoy descubriendo qué me mueve."}
+  ]
+};
+const Q_CLAR = {
+  key:"clar", title:"¿Qué tan claro tienes qué vas a estudiar?",
+  opts:[
+    {v:0, t:"Todavía no tengo idea."},
+    {v:1, t:"Tengo algunas opciones dando vueltas."},
+    {v:2, t:"Tengo una carrera en mente, pero dudo."},
+    {v:3, t:"Lo tengo claro. Ahora quiero saber dónde y cómo."}
+  ]
+};
+/* Mismas misiones y tripulaciones que el quiz completo del Fest */
+const MISSIONS = [
+  {name:"Misión Radar", obj:"Detectar qué te mueve."},
+  {name:"Misión Órbita", obj:"Dar vueltas alrededor de tus opciones hasta ver cuál pesa más."},
+  {name:"Misión Prueba de motores", obj:"Poner a prueba la carrera que tienes en mente antes de despegar."},
+  {name:"Misión Lanzamiento", obj:"Pasar de qué estudiar a dónde y cómo."}
+];
+const CREWS = {
+  telescopio:{name:"Telescopio", d:"Miras lejos y te inspiran las historias de otros antes de decidir."},
+  rover:{name:"Rover", d:"Exploras el terreno probando cosas con tus propias manos."},
+  satelite:{name:"Satélite", d:"Orbitas tu objetivo y reúnes toda la información que necesitas."},
+  cohete:{name:"Cohete", d:"Vas directo a tu meta y aprendes en la acción."}
+};
+/* Tripulación con solo 2 respuestas:
+   - Claridad 0–1 = explorar, 2–3 = enfocar.
+   - Práctico o Change maker = aprender haciendo; Apasionado o Descubriendo = inspirarse escuchando. */
+function crewOf(arch, clar){
+  const explora = clar <= 1, hace = arch==="practico" || arch==="changemaker";
+  return explora ? (hace ? "rover" : "telescopio") : (hace ? "cohete" : "satelite");
+}
+
+/* ===================== Estado ===================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const nowISO = () => new Date().toISOString();
+const limaTime = iso => iso ? new Date(iso).toLocaleString("es-PE",{timeZone:"America/Lima"}) : "";
+let S = null;          /* sesión del tripulante actual */
+let SEQ = 0, resetT = null, tickT = null;
+function fresh(){ return {sid:null, nombre:"", dni:"", correo:"", ans:{}, empezado:"", terminado:"", estado:"", step:0}; }
+
+/* ===================== Envío a Google Sheets ===================== */
+const COLS = ["Actualizado","Fuente","Nombre","DNI","Correo","Estado","Versión","Empezó","Terminó","Avance","Abandonó en","Perfil","Claridad","Tripulación","Misión"];
+function send(){
+  if(!SHEET_URL || !S.sid) return;
+  const a = S.ans, done = S.estado==="Terminó";
+  const crew = done ? CREWS[crewOf(a.arch, a.clar)].name : "", mis = done ? MISSIONS[a.clar].name : "";
+  const label = (q,v)=> (q.opts.find(o=>o.v===v)||{}).t || "";
+  const row = {
+    "Actualizado": limaTime(nowISO()), "Fuente":"Kiosko", "Nombre":S.nombre, "DNI":S.dni, "Correo":S.correo,
+    "Estado":S.estado, "Versión":"Kiosko", "Empezó":limaTime(S.empezado), "Terminó":limaTime(S.terminado),
+    "Avance": `${S.step} de 2`, "Abandonó en": done ? "" : [Q_ARCH,Q_CLAR][S.step]?.title || "",
+    "Perfil": label(Q_ARCH, a.arch), "Claridad": label(Q_CLAR, a.clar),
+    "Tripulación": crew, "Misión": mis,
+    "_resultado": done ? JSON.stringify({v:1, mode:"kiosko", ans:{arch:a.arch, clar:a.clar}}) : ""
+  };
+  try{
+    fetch(SHEET_URL, {method:"POST", mode:"no-cors", keepalive:true, headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({id:S.sid, seq:++SEQ, cols:COLS, row})}).catch(()=>{});
+  }catch(e){}
+}
+/* Busca el último resultado de este DNI + primer nombre (del kiosko o del quiz completo) */
+async function lookup(nombre, dni){
+  if(!SHEET_URL) return null;
+  const ctl = new AbortController(); const t = setTimeout(()=>ctl.abort(), 7000);
+  try{
+    const u = `${SHEET_URL}?accion=resultado&fuente=todas&dni=${encodeURIComponent(dni)}&nombre=${encodeURIComponent(nombre)}`;
+    const d = await (await fetch(u, {signal:ctl.signal})).json();
+    if(!d || !d.found) return null;
+    let crewKey = Object.keys(CREWS).find(k=>CREWS[k].name===d.tripulacion);
+    let mi = MISSIONS.findIndex(m=>m.name===d.mision);
+    if((!crewKey || mi<0) && d.resultado){
+      try{ const r = JSON.parse(d.resultado).ans || {};
+        if(r.arch!==undefined && r.clar!==undefined){ crewKey = crewKey || crewOf(r.arch, r.clar); if(mi<0) mi = r.clar; } }catch(e){}
+    }
+    return crewKey && mi>=0 ? {nombre:d.nombre || nombre, crewKey, mi} : null;
+  }catch(e){ return null; } finally{ clearTimeout(t); }
+}
+
+/* ===================== Pantallas ===================== */
+const ICON = {
+  user:`<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></svg>`,
+  id:`<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5 16.5c.6-1.8 2-2.6 3.5-2.6s2.9.8 3.5 2.6M14.5 10h4.5M14.5 13h4.5"/></svg>`,
+  mail:`<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="1.5"/><path d="m3 6 9 7 9-7"/></svg>`
+};
+const hud = (inner, cls="") => `<span class="hud ${cls}"><span class="in">${inner}</span></span>`;
+
+function show(html, after){
+  const stage = $("stage"), old = stage.firstElementChild;
+  const put = ()=>{ stage.innerHTML = html; after && after(); };
+  if(old && !matchMedia("(prefers-reduced-motion: reduce)").matches){ old.classList.add("out"); setTimeout(put, 260); } else put();
+}
+
+function screenRegister(){
+  clearTimers(); S = fresh(); $("back").hidden = true;
+  show(`<section class="screen">
+    <h1>Registro de tripulante</h1>
+    <form id="reg" novalidate autocomplete="off">
+      <label class="field glow" id="fNm">${hud(`<span class="ic">${ICON.user}</span><input id="nm" placeholder="Nombre y apellido" autocapitalize="words" aria-label="Nombre y apellido">`)}</label>
+      <label class="field glow" id="fDni">${hud(`<span class="ic">${ICON.id}</span><input id="dni" placeholder="DNI" inputmode="numeric" maxlength="8" aria-label="DNI">`)}</label>
+      <label class="field glow" id="fMail">${hud(`<span class="ic">${ICON.mail}</span><input id="mail" type="email" inputmode="email" placeholder="Correo electrónico" aria-label="Correo electrónico">`)}</label>
+      <p class="msg" id="msg" aria-live="polite"></p>
+      <button class="btn glow" id="go" type="submit">${hud("Registrarme")}</button>
+    </form>
+  </section>`, ()=>{
+    $("dni").addEventListener("input", e=>{ e.target.value = e.target.value.replace(/\D/g,"").slice(0,8); });
+    $("reg").onsubmit = onRegister;
+  });
+}
+
+async function onRegister(e){
+  e.preventDefault();
+  const msg = $("msg"), nm = $("nm").value.trim().replace(/\s+/g," "), dni = $("dni").value, mail = $("mail").value.trim().toLowerCase();
+  ["fNm","fDni","fMail"].forEach(id=>$(id).classList.remove("bad")); msg.classList.remove("err");
+  const bad = (id, input, text)=>{ $(id).classList.add("bad"); msg.classList.add("err"); msg.textContent = text; $(input).focus(); };
+  if(nm.length < 3 || !/\p{L}/u.test(nm)) return bad("fNm","nm","Escribe tu nombre y apellido.");
+  if(!/^\d{8}$/.test(dni)) return bad("fDni","dni", dni ? "El DNI tiene 8 dígitos." : "Escribe tu DNI.");
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)) return bad("fMail","mail","Revisa tu correo: nombre@ejemplo.com");
+
+  const go = $("go"); go.disabled = true; msg.textContent = "Verificando tu registro…";
+  const prev = await lookup(nm, dni);
+  if(prev){ screenResult({nombre:prev.nombre, crewKey:prev.crewKey, mi:prev.mi, returning:true}); return; }
+
+  Object.assign(S, {nombre:nm, dni, correo:mail, empezado:nowISO(), estado:"Empezó", step:0,
+    sid: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2)});
+  send();
+  screenQuestion(0);
+}
+
+function screenQuestion(n){
+  clearTimers(); armIdle();
+  const q = [Q_ARCH, Q_CLAR][n];
+  S.step = n;
+  $("back").hidden = false;
+  $("back").onclick = ()=> n===0 ? screenRegister() : screenQuestion(n-1);
+  show(`<section class="screen">
+    <div class="steps" aria-label="Pregunta ${n+1} de 2"><i class="on"></i><i class="${n>=1?"on":""}"></i></div>
+    <h2>${esc(q.title)}</h2>
+    <div class="opts" role="list">
+      ${q.opts.map((o,k)=>`<button class="btn opt glow ${S.ans[q.key]===o.v?"sel":""}" data-k="${k}" role="listitem">
+        ${hud(`<span class="letter">${"ABCD"[k]}</span><span class="t">${esc(o.t)}</span>`)}</button>`).join("")}
+    </div>
+  </section>`, ()=>{
+    document.querySelectorAll(".opt").forEach(b=>b.onclick = ()=>{
+      if(b.dataset.lock) return;
+      document.querySelectorAll(".opt").forEach(x=>{ x.classList.remove("sel"); x.dataset.lock = 1; });
+      b.classList.add("sel");
+      S.ans[q.key] = q.opts[+b.dataset.k].v;
+      setTimeout(()=>{
+        if(n===0){ S.step = 1; send(); screenQuestion(1); }
+        else finish();
+      }, 380);
+    });
+  });
+}
+
+function finish(){
+  S.estado = "Terminó"; S.terminado = nowISO(); S.step = 2;
+  send();
+  screenResult({nombre:S.nombre, crewKey:crewOf(S.ans.arch, S.ans.clar), mi:S.ans.clar, returning:false});
+}
+
+function screenResult({nombre, crewKey, mi, returning}){
+  clearTimers(); $("back").hidden = true;
+  const first = esc(String(nombre).split(" ")[0]);
+  const crew = CREWS[crewKey], m = MISSIONS[mi];
+  show(`<section class="screen">
+    <h2 class="hello">¡Hola${returning ? " de nuevo" : ""}, ${first}!</h2>
+    <p class="welcome">${returning ? "Ya eres parte de la tripulación" : "Te damos la bienvenida a la tripulación"}</p>
+    <div class="crewrow"><span class="crew glow">${hud(esc(crew.name))}</span></div>
+    <p class="crewd">${esc(crew.d)}</p>
+    <div class="mission glow">${hud(`
+      <span class="lab">Tu primera <b>MISIÓN</b>:</span>
+      <span class="name">${esc(m.name)}</span>
+      <span class="obj">${esc(m.obj)}</span>`)}</div>
+    <button class="btn glow" id="done">${hud(`Finalizar <span id="cd"></span>`)}</button>
+  </section>`, ()=>{
+    $("done").onclick = screenRegister;
+    let left = RESET_SECONDS;
+    const paint = ()=>{ const el = $("cd"); if(el) el.textContent = `(${left})`; };
+    paint();
+    tickT = setInterval(()=>{ left--; paint(); if(left<=0) screenRegister(); }, 1000);
+  });
+}
+
+/* Si alguien deja una pregunta a medias, el kiosko vuelve al registro tras 2 minutos */
+function armIdle(){
+  clearTimeout(resetT);
+  resetT = setTimeout(screenRegister, 120000);
+}
+function clearTimers(){ clearTimeout(resetT); clearInterval(tickT); }
+["pointerdown","keydown"].forEach(ev=>addEventListener(ev, ()=>{ if(S && S.sid && S.estado==="Empezó") armIdle(); }, {passive:true}));
+
+/* ===================== Estrellas ===================== */
+(function stars(){
+  const c = $("stars"), g = c.getContext("2d"); let W, H, list = [];
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function size(){
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    W = c.width = innerWidth*dpr; H = c.height = innerHeight*dpr;
+    const n = Math.round(innerWidth*innerHeight/2600);
+    list = Array.from({length:n}, ()=>({x:Math.random()*W, y:Math.random()*H, r:(Math.random()**3*1.6+.3)*dpr, p:Math.random()*6.28, s:.4+Math.random()*1.4}));
+  }
+  function draw(t){
+    g.clearRect(0,0,W,H);
+    for(const s of list){
+      const a = .35 + .65*Math.abs(Math.sin(s.p + t/1000*s.s*(reduce?0:1)));
+      g.globalAlpha = a; g.fillStyle = s.r > 1.6 ? "#cfe0ff" : "#8fb2ff";
+      g.beginPath(); g.arc(s.x, s.y, s.r, 0, 6.283); g.fill();
+    }
+    if(!reduce) requestAnimationFrame(draw);
+  }
+  addEventListener("resize", size); size(); requestAnimationFrame(draw);
+})();
+
+screenRegister();
+</script>
+</body>
+</html>
